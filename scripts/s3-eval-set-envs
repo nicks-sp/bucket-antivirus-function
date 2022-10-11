@@ -5,6 +5,6 @@ export CLAMAV_LATEST=$(yum info clamav-update | grep Version | awk -F':' '{ prin
 # Adds it to the shared workspace to be used in the setup stage/added to generated config
 echo CLAMAV_LATEST=$CLAMAV_LATEST >> workspace/clamav-latest
 # Evaluates whether or not the zip requires building
-export REQUIRE_UPDATE=$(aws s3 ls s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip; if [[ $? == 1 ]]; then echo true; else echo false; fi)
+export REQUIRE_UPDATE=$(aws s3 ls s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip > /dev/null; if [[ $? == 1 ]]; then echo true; else echo false; fi)
 # Adds it to shared workspace to be used as an API trigger for the generated workflow
 echo '{"require-update": '$REQUIRE_UPDATE'}' >> workspace/require-update.json

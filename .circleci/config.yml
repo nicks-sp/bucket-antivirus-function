@@ -37,17 +37,20 @@ jobs:
           name: Checking latest clamav, checking if s3 obj exists
           command: |
             source ./scripts/s3-eval-set-envs
+      # Creates shared workspace that transfers env vars and JSON to other jobs
       - persist_to_workspace:
           root: workspace
           paths:
             - clamav-latest
             - require-update.json
-  # Setup that dynamically sends loads latest version into generated config, and sends require-update parameter as JSON
+
+  # Setup that dynamically loads latest version into generated config, and sends require-update parameter as JSON https://circleci.com/docs/dynamic-config/
   setup:
     <<: *defaults
     executor: continuation/default
     steps:
       - checkout
+      # Attaches the workspace to allow for loading the data into the generated config
       - attach_workspace:
           at: /tmp/ci-test/workspace
       - run: cat workspace/clamav-latest >> "$BASH_ENV"
@@ -55,6 +58,7 @@ jobs:
           name: use job config
           command: |
             ./scripts/new-config $CLAMAV_LATEST
+      # Effectively an API trigger that gets sent to the generated config
       - continuation/continue:
           configuration_path: ./configs/generated_config.yml
           parameters: /tmp/ci-test/workspace/require-update.json

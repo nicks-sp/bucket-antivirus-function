@@ -51,7 +51,6 @@ jobs:
       - run: pip3 install pre-commit
       - run: pre-commit run --all-files
 
-  # Conditional job that builds and copies lambda zip to s3 bucket
   build:
     executor: build
     environment:
@@ -64,11 +63,13 @@ jobs:
           condition: << pipeline.parameters.require-update >>
           steps:
             - run:
-                name: "make zip"
+                name: Making zip
                 command: make all
             - run:
-                name: copy zip file
+                name: Copying lambda-$CLAMAV_LATEST.zip to $S3_BUCKET
                 command: aws s3 cp ./build/lambda.zip s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip
+
+  # To prevent second step from erroring out if update not required
   update:
     executor: build
     steps:

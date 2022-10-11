@@ -60,6 +60,10 @@ jobs:
             - run:
                 name: copy zip file
                 command: aws s3 cp ./build/lambda.zip s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip
+  update:
+    executor: build
+    steps:
+      - run: echo "Update not required"
 
 workflows:
   version: 2
@@ -75,3 +79,8 @@ workflows:
             - aws
           requires:
             - pre-commit-test
+  status-update:
+    when:
+      not:  <<pipeline.parameters.require-update >>
+    jobs:
+      - update

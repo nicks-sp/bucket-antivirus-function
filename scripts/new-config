@@ -31,17 +31,26 @@ jobs:
     executor: build
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
       - run: pip3 install pre-commit
       - run: pre-commit install-hooks
+      - save_cache:
+          key: pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
+          paths:
+            - ~/.cache/pre-commit
 
   pre-commit-test:
     executor: build
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
       - run: pip3 install pre-commit
-      - run:
-          name: Run pre-commit tests
-          command: pre-commit run --all-files
+      - run: pre-commit run --all-files
+
   # Conditional job that builds and copies lambda zip to s3 bucket
   build:
     executor: build
@@ -67,7 +76,7 @@ jobs:
 
 workflows:
   version: 2
-  make-sync-zip:
+  build-and-deploy:
     when: << pipeline.parameters.require-update >>
     jobs:
       - pre-commit-deps

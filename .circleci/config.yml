@@ -1,96 +1,75 @@
-############
-#
-# Caches
-#
-# Caches may require a prefix, since caches in CircleCI 2.0 are immutable.
-# A prefix provides an easy way to invalidate a cache.  See https://circleci.com/docs/2.0/caching/#clearing-cache
-#
-############
+version: 2.1
 
-version: "2.1"
+setup: true
+
+defaults: &defaults
+  working_directory: /tmp/ci-test
+
+orbs:
+  continuation: circleci/continuation@0.1.2
+  aws-cli: circleci/aws-cli@3.1
 
 executors:
-  primary:
+  version-check:
     docker:
-      - image: docker:17.05.0-ce
-  python_test:
-    docker:
-      - image: circleci/python:3.7-stretch
-  pre_commit_test:
-    docker:
-      - image: circleci/python:3.7-stretch
+      - image: amazonlinux:2
 
 jobs:
-
-  # `build` is used for building the archive
-  build:
-    executor: primary
-    working_directory: ~/src
-    steps:
-      - setup_remote_docker:
-          reusable: true    # default - false
-          exclusive: true   # default - true
-      - run:
-          name: Dependencies
-          command: apk add --no-cache make git curl openssh
-      - checkout
-      - run:
-          name: Build
-          command: make archive
-
-  # `pre_commit_deps` is used for cache pre-commit sources
-  pre_commit_deps:
-    executor: pre_commit_test
+  # Define env var that determine the latest version and s3 object existence
+  evaluate:
+    <<: *defaults
+    executor: version-check
+    environment:
+      AWS_DEFAULT_REGION: us-east-1
     steps:
       - checkout
-
-      - restore_cache:
-          keys:
-            - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
-      - run: sudo pip install pre-commit==2.12.1
-      - run: pre-commit install-hooks
-
-      - save_cache:
-          key: pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
+      - run: mkdir -p workspace
+      - run:
+          name: Installing dependencies
+          command: |
+            yum update -y
+            yum install tar -y && yum install gzip -y && yum install unzip -y
+            yum makecache fast
+      - aws-cli/setup:
+          role-arn: $CIRCLECI_ROLE_ARN
+      - run:
+          # Script contains env var definitions and storing into workspace
+          name: Checking latest clamav, checking if s3 obj exists
+          command: |
+            source ./scripts/s3-eval-set-envs
+      # Creates shared workspace that transfers env vars and JSON to other jobs
+      - persist_to_workspace:
+          root: workspace
           paths:
-            - ~/.cache/pre-commit
+            - clamav-latest
+            - require-update.json
 
-  # `pre_commit_test` is used to run pre-commit hooks on all files
-  pre_commit_test:
-    executor: pre_commit_test
+  # Setup that dynamically loads latest version into generated config, and sends require-update parameter as JSON https://circleci.com/docs/dynamic-config/
+  setup:
+    <<: *defaults
+    executor: continuation/default
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
-      - run: sudo pip install pre-commit==1.18.3
+      # Attaches the workspace to allow for loading the data into the generated config
+      - attach_workspace:
+          at: /tmp/ci-test/workspace
+      - run: cat workspace/clamav-latest >> "$BASH_ENV"
       - run:
-          name: Run pre-commit tests
-          command: pre-commit run --all-files
-
-  # `test` is used to run python tests
-  test:
-    executor: python_test
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
-      - run: sudo pip install -r requirements.txt
-      - run: sudo pip install -r requirements-dev.txt
-      - run: nosetests
+          name: use job config
+          command: |
+            ./scripts/new-config $CLAMAV_LATEST
+      # Effectively an API trigger that gets sent to the generated config
+      - continuation/continue:
+          configuration_path: ./configs/generated_config.yml
+          parameters: /tmp/ci-test/workspace/require-update.json
 
 workflows:
   version: 2
-
-  main:
+  load-env-setup:
     jobs:
-      - pre_commit_deps
-      - pre_commit_test:
+      - evaluate:
+          context:
+            - aws
+      - setup:
           requires:
-            - pre_commit_deps
-      - test
-      - build:
-          requires:
-            - pre_commit_test
-            - test
+            - evaluate

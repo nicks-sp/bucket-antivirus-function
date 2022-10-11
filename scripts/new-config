@@ -1,0 +1,96 @@
+#!/bin/bash
+set -o pipefail
+CLAMAV_LATEST=$1
+mkdir configs/
+cat << EOF > configs/generated_config.yml
+version: 2.1
+# This gets triggered by the setup config
+parameters:
+  require-update:
+    description: Decide wether or not the build will make the zip and push it
+    type: boolean
+    default: false
+
+# build executor is used for making the arm64 clamav zip, version-check is to compare latest version before make zip
+executors:
+  build:
+    resource_class: arm.medium
+    machine:
+      image: ubuntu-2004:current
+
+  version-check:
+    docker:
+      - image: amazonlinux:2
+
+# Setup for assume role with open ID and running CLI commands
+orbs:
+  aws-cli: circleci/aws-cli@3.1
+
+jobs:
+  pre-commit-deps:
+    executor: build
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
+      - run: pip3 install pre-commit
+      - run: pre-commit install-hooks
+      - save_cache:
+          key: pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
+          paths:
+            - ~/.cache/pre-commit
+
+  pre-commit-test:
+    executor: build
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - pre-commit-dot-cache-{{ checksum ".pre-commit-config.yaml" }}
+      - run: pip3 install pre-commit
+      - run: pre-commit run --all-files
+
+  build:
+    executor: build
+    environment:
+      AWS_DEFAULT_REGION: us-east-1
+    steps:
+      - checkout
+      - aws-cli/setup:
+          role-arn: $CIRCLECI_ROLE_ARN
+      - when:
+          condition: << pipeline.parameters.require-update >>
+          steps:
+            - run:
+                name: Making zip
+                command: make all
+            - run:
+                name: Copying lambda-$CLAMAV_LATEST.zip to $S3_BUCKET
+                command: aws s3 cp ./build/lambda.zip s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip
+
+  # To prevent second step from erroring out if update not required
+  update:
+    executor: build
+    steps:
+      - run: echo "Update not required"
+
+workflows:
+  version: 2
+  build-and-deploy:
+    when: << pipeline.parameters.require-update >>
+    jobs:
+      - pre-commit-deps
+      - pre-commit-test:
+          requires:
+            - pre-commit-deps
+      - build:
+          context:
+            - aws
+          requires:
+            - pre-commit-test
+  status-update:
+    when:
+      not:  <<pipeline.parameters.require-update >>
+    jobs:
+      - update

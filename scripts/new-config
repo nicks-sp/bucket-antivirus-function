@@ -4,6 +4,7 @@ CLAMAV_LATEST=$1
 mkdir configs/
 cat << EOF > configs/generated_config.yml
 version: 2.1
+
 # This gets triggered by the setup config
 parameters:
   require-update:
@@ -11,16 +12,12 @@ parameters:
     type: boolean
     default: false
 
-# build executor is used for making the arm64 clamav zip, version-check is to compare latest version before make zip
+# build executor is used for making the arm64 clamav zip
 executors:
   build:
     resource_class: arm.medium
     machine:
       image: ubuntu-2004:current
-
-  version-check:
-    docker:
-      - image: amazonlinux:2
 
 # Setup for assume role with open ID and running CLI commands
 orbs:
@@ -89,6 +86,7 @@ workflows:
             - aws
           requires:
             - pre-commit-test
+
   status-update:
     when:
       not:  <<pipeline.parameters.require-update >>

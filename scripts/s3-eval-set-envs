@@ -2,6 +2,8 @@
 
 yum-config-manager --add-repo=https://jdl-circleci.s3.amazonaws.com/clamav/pub/repos/clamav.repo
 yum makecache
+yum --disablerepo=* --enablerepo=clamav info clamav-update
+
 
 # Gets latest version of clamav
 export CLAMAV_LATEST=$(yum --disablerepo=* --enablerepo=clamav info clamav-update | grep Version | awk -F':' '{ print $2 }' | tail -n1 | tr -d '[:space:]')
@@ -11,3 +13,5 @@ echo CLAMAV_LATEST=$CLAMAV_LATEST >> workspace/clamav-latest
 export REQUIRE_UPDATE=$(aws s3 ls s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip > /dev/null; if [[ $? == 1 ]]; then echo true; else echo false; fi)
 # Adds it to shared workspace to be used as an API trigger for the generated workflow
 echo '{"require-update": '$REQUIRE_UPDATE'}' >> workspace/require-update.json
+
+exit 1

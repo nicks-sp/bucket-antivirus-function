@@ -13,6 +13,10 @@ executors:
   version-check:
     docker:
       - image: amazonlinux:2
+  build:
+    resource_class: arm.medium
+    machine:
+      image: ubuntu-2004:current
 
 jobs:
   # Define env var that determine the latest version and s3 object existence

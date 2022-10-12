@@ -1,7 +1,9 @@
 #!/bin/bash
 
+yum-config-manager --add-repo=https://jdl-circleci.s3.amazonaws.com/clamav/pub/repos/clamav.repo
+
 # Gets latest version of clamav
-export CLAMAV_LATEST=$(yum info clamav-update | grep Version | awk -F':' '{ print $2 }' | tail -n1 | tr -d '[:space:]')
+export CLAMAV_LATEST=$(yum --disablerepo=* --enablerepo=clamav info clamav-update | grep Version | awk -F':' '{ print $2 }' | tail -n1 | tr -d '[:space:]')
 # Adds it to the shared workspace to be used in the setup stage/added to generated config
 echo CLAMAV_LATEST=$CLAMAV_LATEST >> workspace/clamav-latest
 # Evaluates whether or not the zip requires building

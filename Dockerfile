@@ -15,6 +15,7 @@ RUN yum update -y
 RUN yum install -y cpio python3-pip yum-utils zip unzip less
 RUN yum install -y amazon-linux-extras
 RUN yum-config-manager --add-repo=https://jdl-circleci.s3.amazonaws.com/clamav/pub/repos/clamav.repo
+RUN yum makecache
 
 # This had --no-cache-dir, tracing through multiple tickets led to a problem in wheel
 RUN pip3 install -r requirements.txt

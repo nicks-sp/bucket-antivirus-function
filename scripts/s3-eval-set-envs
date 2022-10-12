@@ -1,8 +1,14 @@
 #!/bin/bash
 
+echo ==
 yum-config-manager --add-repo=https://jdl-circleci.s3.amazonaws.com/clamav/pub/repos/clamav.repo
+echo ==
 yum makecache
-yum --disablerepo=* --enablerepo=clamav info clamav-update
+echo ==
+yum --disablerepo=* --enablerepo=clamav info clamav*
+echo ==
+cat /etc/yum.repos.d/clamav.repo
+echo ==
 
 
 # Gets latest version of clamav

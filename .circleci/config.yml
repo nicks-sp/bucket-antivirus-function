@@ -22,18 +22,19 @@ jobs:
   # Define env var that determine the latest version and s3 object existence
   evaluate:
     <<: *defaults
-    executor: version-check
+    executor: build
     environment:
       AWS_DEFAULT_REGION: us-east-1
     steps:
       - checkout
       - run: mkdir -p workspace
       - run:
-          name: Installing dependencies
+          name: docker setup
           command: |
-            yum update -y
-            yum install tar -y && yum install gzip -y && yum install unzip -y && yum install yum-utils -y
-            yum makecache fast
+            docker build -t test-container ./conf/
+            docker run -di --name exec-test test-container
+            docker start exec-test
+
       - aws-cli/setup:
           role-arn: $CIRCLECI_ROLE_ARN
       - run:

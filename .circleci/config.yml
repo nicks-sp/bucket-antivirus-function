@@ -10,9 +10,6 @@ orbs:
   aws-cli: circleci/aws-cli@3.1
 
 executors:
-  version-check:
-    docker:
-      - image: amazonlinux:2
   build:
     resource_class: arm.medium
     machine:
@@ -31,9 +28,8 @@ jobs:
       - run:
           name: docker setup
           command: |
-            docker build -t test-container ./conf/
-            docker run -di --name exec-test test-container
-            docker start exec-test
+            docker build -t version-check ./conf/
+            docker run -di --name exec-test version-check
 
       - aws-cli/setup:
           role-arn: $CIRCLECI_ROLE_ARN

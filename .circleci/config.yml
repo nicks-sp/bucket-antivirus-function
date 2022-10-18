@@ -28,8 +28,8 @@ jobs:
       - run:
           name: docker setup
           command: |
-            docker build -t version-check ./conf/
-            docker run -di --name exec-test version-check
+            docker build -t clamav-version-image ./conf/
+            docker run -di --name version-check clamav-version-image
 
       - aws-cli/setup:
           role-arn: $CIRCLECI_ROLE_ARN

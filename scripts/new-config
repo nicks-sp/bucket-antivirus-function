@@ -57,7 +57,7 @@ jobs:
       env-role-arn:
         type: string
     environment:
-      AWS_DEFAULT_REGION: << parameters.region> >
+      AWS_DEFAULT_REGION: \<< parameters.region> >
     steps:
       - checkout
       - aws-cli/setup:

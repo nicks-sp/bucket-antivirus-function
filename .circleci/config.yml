@@ -25,6 +25,11 @@ jobs:
   evaluate:
     <<: *default-dir
     executor: build
+    parameters:
+      region:
+        type: string
+      env-role-arn:
+        type: string
     steps:
       - checkout
       - run: mkdir -p workspace
@@ -33,10 +38,9 @@ jobs:
           command: |
             docker build -t clamav-version-image ./conf/
             docker run -di --name version-check clamav-version-image
-
       - aws-cli/setup:
-          role-arn: $CIRCLECI_ROLE_ARN
-          aws-region: DEFAULT_REGION
+          role-arn: << parameters.env-role-arn >>
+          aws-region: << parameters.region >>
       - run:
           # Script contains env var definitions and storing into workspace
           name: Checking latest clamav version, checking if s3 obj exists
@@ -73,6 +77,8 @@ workflows:
   load-env-setup:
     jobs:
       - evaluate:
+          region: DEFAULT_REGION
+          env-role-arn: $CIRCLECI_ROLE_ARN
           context:
             - aws
       - setup:

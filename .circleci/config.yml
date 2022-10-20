@@ -1,14 +1,19 @@
 version: 2.1
 
+# Required for dynamic config, also needs to be activated under project settings -> advanced
 setup: true
 
-defaults: &defaults
+# Directory for workspace to persist data between jobs
+default-dir: &default-dir
   working_directory: /tmp/ci-test
 
+# Continuation orb for sending JSON as an API trigger to generated config
+# Aws-cli orb used in set-envs script
 orbs:
   continuation: circleci/continuation@0.1.2
   aws-cli: circleci/aws-cli@3.1
 
+# Machine arm64 image required to get correct repo version from docker in set-envs script
 executors:
   build:
     resource_class: arm.medium
@@ -18,10 +23,10 @@ executors:
 jobs:
   # Define env var that determine the latest version and s3 object existence
   evaluate:
-    <<: *defaults
+    <<: *default-dir
     executor: build
     environment:
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: $AWS_REGION
     steps:
       - checkout
       - run: mkdir -p workspace
@@ -35,9 +40,9 @@ jobs:
           role-arn: $CIRCLECI_ROLE_ARN
       - run:
           # Script contains env var definitions and storing into workspace
-          name: Checking latest clamav, checking if s3 obj exists
+          name: Checking latest clamav version, checking if s3 obj exists
           command: |
-            source ./scripts/s3-eval-set-envs
+            source ./scripts/set-envs
       # Creates shared workspace that transfers env vars and JSON to other jobs
       - persist_to_workspace:
           root: workspace
@@ -47,7 +52,7 @@ jobs:
 
   # Setup that dynamically loads latest version into generated config, and sends require-update parameter as JSON https://circleci.com/docs/dynamic-config/
   setup:
-    <<: *defaults
+    <<: *default-dir
     executor: continuation/default
     steps:
       - checkout

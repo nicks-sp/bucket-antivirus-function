@@ -12,7 +12,7 @@ parameters:
     type: boolean
     default: false
 
-
+# Machine image required for building zip on arm64 architecture - all docker executors are natively x86
 runs-on: &runs-on
   resource_class: arm.medium
   machine:
@@ -49,12 +49,19 @@ jobs:
 
   build:
     <<: *runs-on
+    parameters:
+      region:
+        type: string
+      bucket:
+        type: string
+      env-role-arn:
+        type: string
     environment:
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: << parameters.region> >
     steps:
       - checkout
       - aws-cli/setup:
-          role-arn: $CIRCLECI_ROLE_ARN
+          role-arn: << parameters.env-role-arn >>
       - when:
           condition: << pipeline.parameters.require-update >>
           steps:
@@ -62,8 +69,8 @@ jobs:
                 name: Making zip
                 command: make all
             - run:
-                name: Copying lambda-$CLAMAV_LATEST.zip to $S3_BUCKET
-                command: aws s3 cp ./build/lambda.zip s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip
+                name: Copying lambda-$CLAMAV_LATEST.zip to << parameters.bucket >>
+                command: aws s3 cp ./build/lambda.zip s3://<< parameters.bucket >>/lambda-$CLAMAV_LATEST.zip
 
   # To prevent second step from erroring out if update not required
   update:
@@ -81,6 +88,9 @@ workflows:
           requires:
             - pre-commit-deps
       - build:
+          region: $DEFAULT_REGION
+          bucket: $S3_BUCKET
+          env-role-arn: $CIRCLECI_ROLE_ARN
           context:
             - aws
           requires:

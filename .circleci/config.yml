@@ -36,7 +36,7 @@ jobs:
 
       - aws-cli/setup:
           role-arn: $CIRCLECI_ROLE_ARN
-          aws-region: $DEFAULT_REGION
+          aws-region: DEFAULT_REGION
       - run:
           # Script contains env var definitions and storing into workspace
           name: Checking latest clamav version, checking if s3 obj exists

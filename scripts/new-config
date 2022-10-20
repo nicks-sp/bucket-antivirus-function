@@ -87,7 +87,7 @@ workflows:
           requires:
             - pre-commit-deps
       - build:
-          region: $DEFAULT_REGION
+          region: DEFAULT_REGION
           bucket: $S3_BUCKET
           env-role-arn: $CIRCLECI_ROLE_ARN
           context:

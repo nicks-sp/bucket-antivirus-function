@@ -25,9 +25,6 @@ jobs:
   evaluate:
     <<: *default-dir
     executor: build
-    parameters:
-      region:
-        type: string
     environment:
       AWS_DEFAULT_REGION: us-east-1
     steps:

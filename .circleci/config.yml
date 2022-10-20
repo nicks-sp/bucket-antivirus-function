@@ -25,8 +25,11 @@ jobs:
   evaluate:
     <<: *default-dir
     executor: build
+    parameters:
+      region:
+        type: string
     environment:
-      AWS_DEFAULT_REGION: $DEFAULT_REGION
+      AWS_DEFAULT_REGION: << parameters.region >>
     steps:
       - checkout
       - run: mkdir -p workspace
@@ -74,6 +77,7 @@ workflows:
   load-env-setup:
     jobs:
       - evaluate:
+          region: $DEFAULT_REGION
           context:
             - aws
       - setup:

@@ -12,12 +12,11 @@ parameters:
     type: boolean
     default: false
 
-# build executor is used for making the arm64 clamav zip
-executors:
-  build:
-    resource_class: arm.medium
-    machine:
-      image: ubuntu-2004:current
+
+runs-on: &runs-on
+  resource_class: arm.medium
+  machine:
+    image: ubuntu-2004:current
 
 # Setup for assume role with open ID and running CLI commands
 orbs:
@@ -25,7 +24,7 @@ orbs:
 
 jobs:
   pre-commit-deps:
-    executor: build
+    <<: *runs-on
     steps:
       - checkout
       - restore_cache:
@@ -39,7 +38,7 @@ jobs:
             - ~/.cache/pre-commit
 
   pre-commit-test:
-    executor: build
+    <<: *runs-on
     steps:
       - checkout
       - restore_cache:
@@ -49,7 +48,7 @@ jobs:
       - run: pre-commit run --all-files
 
   build:
-    executor: build
+    <<: *runs-on
     environment:
       AWS_DEFAULT_REGION: us-east-1
     steps:
@@ -68,7 +67,7 @@ jobs:
 
   # To prevent second step from erroring out if update not required
   update:
-    executor: build
+    <<: *runs-on
     steps:
       - run: echo "Update not required"
 

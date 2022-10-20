@@ -50,16 +50,17 @@ jobs:
   build:
     <<: *runs-on
     parameters:
+      region:
+        type: string
       bucket:
         type: string
       env-role-arn:
         type: string
-    environment:
-      AWS_DEFAULT_REGION: us-east-1
     steps:
       - checkout
       - aws-cli/setup:
           role-arn: << parameters.env-role-arn >>
+          aws-region: << parameters.region >>
       - when:
           condition: << pipeline.parameters.require-update >>
           steps:
@@ -86,6 +87,7 @@ workflows:
           requires:
             - pre-commit-deps
       - build:
+          region: $DEFAULT_REGION
           bucket: $S3_BUCKET
           env-role-arn: $CIRCLECI_ROLE_ARN
           context:

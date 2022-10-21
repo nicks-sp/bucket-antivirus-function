@@ -93,8 +93,7 @@ workflows:
       - pre-commit-test:
           requires:
             - pre-commit-deps
-      - build:
-          when: << pipeline.parameters.require-update >>
+      - build
       - deploy:
           region: DEFAULT_REGION
           bucket: $S3_BUCKET

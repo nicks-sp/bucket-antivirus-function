@@ -17,6 +17,7 @@ runs-on: &runs-on
   resource_class: arm.medium
   machine:
     image: ubuntu-2004:current
+  working_directory: /tmp/ci-test
 
 # Setup for assume role with open ID and running CLI commands
 orbs:
@@ -70,7 +71,7 @@ jobs:
     steps:
       - checkout
       - attach-workspace:
-          at: ./build
+          at: /tmp/ci-test/build
       - aws-cli/setup:
           role-arn: << parameters.env-role-arn >>
           aws-region: << parameters.region >>

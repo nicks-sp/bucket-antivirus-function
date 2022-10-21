@@ -58,7 +58,7 @@ jobs:
           root: build
           paths:
             - lambda.zip
-deploy:
+  deploy:
     <<: *runs-on
     parameters:
       region:

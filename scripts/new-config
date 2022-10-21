@@ -51,17 +51,14 @@ jobs:
     <<: *runs-on
     steps:
       - checkout
-      - when:
-          condition: << pipeline.parameters.require-update >>
-          steps:
-            - run:
-                name: Making zip
-                command: make all
-            - persist_to_workspace:
-                root: build
-                paths:
-                  - lambda.zip
-  deploy:
+      - run:
+          name: Making zip
+          command: make all
+      - persist_to_workspace:
+          root: build
+          paths:
+            - lambda.zip
+deploy:
     <<: *runs-on
     parameters:
       region:
@@ -96,7 +93,8 @@ workflows:
       - pre-commit-test:
           requires:
             - pre-commit-deps
-      - build
+      - build:
+          when: << pipeline.parameters.require-update >>
       - deploy:
           region: DEFAULT_REGION
           bucket: $S3_BUCKET

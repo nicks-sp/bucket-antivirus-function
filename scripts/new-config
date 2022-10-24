@@ -70,7 +70,7 @@ jobs:
         type: string
     steps:
       - checkout
-      - attach-workspace:
+      - attach_workspace:
           at: /tmp/ci-test/build
       - aws-cli/setup:
           role-arn: << parameters.env-role-arn >>

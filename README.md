@@ -1,8 +1,14 @@
 # bucket-antivirus-function
 
-[![CircleCI](https://circleci.com/gh/upsidetravel/bucket-antivirus-function.svg?style=svg)](https://circleci.com/gh/upsidetravel/bucket-antivirus-function)
+## CircleCI Setup
 
-Scan new objects added to any s3 bucket using AWS Lambda. [more details in this post](https://engineering.upside.com/s3-antivirus-scanning-with-lambda-and-clamav-7d33f9c5092e)
+To set this up, you'll need to add a few project environment variables. To do this:
+- Navigate to your project containing this repo in [CircleCI](https://app.circleci.com/)
+- Under project settings, navigate to Environment Variables
+- Add the following variables:
+    "CIRCLECI_ROLE_ARN": <OIDC role setup for running this job>
+    "DEFAULT_REGION": <Whatever region the env is in>
+    "S3_BUCKET": <Bucket name >
 
 ## Features
 

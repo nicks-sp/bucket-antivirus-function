@@ -1,3 +1,4 @@
+# This is for running preparing and running the docker image used to get the latest version from the custom repo
 FROM amazonlinux:latest
 
 RUN yum update -y

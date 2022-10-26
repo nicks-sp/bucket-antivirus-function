@@ -32,15 +32,15 @@ jobs:
         type: string
     steps:
       - checkout
+      - aws-cli/setup:
+          role-arn: << parameters.env-role-arn >>
+          aws-region: << parameters.region >>
       - run: mkdir -p workspace
       - run:
           name: docker setup
           command: |
             docker build -t clamav-version-image ./conf/
             docker run -di --name version-check clamav-version-image
-      - aws-cli/setup:
-          role-arn: << parameters.env-role-arn >>
-          aws-region: << parameters.region >>
       - run:
           # Script contains env var definitions and storing into workspace
           name: Checking latest clamav version, checking if s3 obj exists

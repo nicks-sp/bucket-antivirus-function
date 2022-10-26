@@ -12,12 +12,12 @@ parameters:
     type: boolean
     default: false
 
-# build executor is used for making the arm64 clamav zip
-executors:
-  build:
-    resource_class: arm.medium
-    machine:
-      image: ubuntu-2004:current
+# Machine image required for building zip on arm64 architecture - all docker executors are natively x86
+runs-on: &runs-on
+  resource_class: arm.medium
+  machine:
+    image: ubuntu-2004:current
+  working_directory: /tmp/ci-test
 
 # Setup for assume role with open ID and running CLI commands
 orbs:
@@ -25,7 +25,7 @@ orbs:
 
 jobs:
   pre-commit-deps:
-    executor: build
+    <<: *runs-on
     steps:
       - checkout
       - restore_cache:
@@ -39,7 +39,7 @@ jobs:
             - ~/.cache/pre-commit
 
   pre-commit-test:
-    executor: build
+    <<: *runs-on
     steps:
       - checkout
       - restore_cache:
@@ -49,26 +49,39 @@ jobs:
       - run: pre-commit run --all-files
 
   build:
-    executor: build
-    environment:
-      AWS_DEFAULT_REGION: us-east-1
+    <<: *runs-on
     steps:
       - checkout
+      - run:
+          name: Making zip
+          command: make all
+      - persist_to_workspace:
+          root: build
+          paths:
+            - lambda.zip
+  deploy:
+    <<: *runs-on
+    parameters:
+      region:
+        type: string
+      bucket:
+        type: string
+      env-role-arn:
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/ci-test/build
       - aws-cli/setup:
-          role-arn: $CIRCLECI_ROLE_ARN
-      - when:
-          condition: << pipeline.parameters.require-update >>
-          steps:
-            - run:
-                name: Making zip
-                command: make all
-            - run:
-                name: Copying lambda-$CLAMAV_LATEST.zip to $S3_BUCKET
-                command: aws s3 cp ./build/lambda.zip s3://$S3_BUCKET/lambda-$CLAMAV_LATEST.zip
+          role-arn: << parameters.env-role-arn >>
+          aws-region: << parameters.region >>
+      - run:
+          name: Copying lambda-$CLAMAV_LATEST.zip to << parameters.bucket >>
+          command: aws s3 cp ./build/lambda.zip s3://<< parameters.bucket >>/lambda-$CLAMAV_LATEST.zip
 
   # To prevent second step from erroring out if update not required
   update:
-    executor: build
+    <<: *runs-on
     steps:
       - run: echo "Update not required"
 
@@ -81,10 +94,15 @@ workflows:
       - pre-commit-test:
           requires:
             - pre-commit-deps
-      - build:
+      - build
+      - deploy:
+          region: DEFAULT_REGION
+          bucket: $S3_BUCKET
+          env-role-arn: $CIRCLECI_ROLE_ARN
           context:
             - aws
           requires:
+            - build
             - pre-commit-test
 
   status-update:
